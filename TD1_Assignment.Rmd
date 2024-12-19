@@ -6,3 +6,123 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exercise 1: Demand Curve
+
+## Background
+
+We simulate a market of 1000 consumers, where each consumer's reservation price is randomly distributed between 0 and 1. The demand curve shows the relationship between market price and quantity demanded.
+
+## Simulation
+
+### Demand Function
+
+```{r demand-function}
+# Number of consumers
+N <- 1000
+# Generate random reservation prices
+reservation_prices <- runif(N)
+
+# Generate market prices
+market_prices <- seq(0, 1, by = 0.01)
+
+# Calculate quantity demanded for each market price
+quantity_demanded <- sapply(market_prices, function(p) sum(reservation_prices >= p))
+```
+
+### Plot
+
+```{r demand-plot}
+# Plot demand curve
+plot(quantity_demanded, market_prices, type = "l", col = "blue", lwd = 2,
+     xlab = "Quantity Demanded", ylab = "Market Price",
+     main = "Demand Curve")
+```
+
+### Alternative Representation
+
+```{r sorted-demand}
+# Sort reservation prices in descending order
+sorted_reservation_prices <- sort(reservation_prices, decreasing = TRUE)
+
+# Create fraction of population
+fraction_population <- seq(1 / N, 1, by = 1 / N)
+
+# Plot sorted reservation prices against fraction of population
+plot(fraction_population, sorted_reservation_prices, type = "l", col = "red", lwd = 2,
+     xlab = "Fraction of Population", ylab = "Reservation Price",
+     main = "Sorted Demand Curve")
+```
+
+# Exercise 2: Monopoly Pricing
+
+## Background
+
+We simulate a monopolist's pricing problem, where each day's buyers have reservation prices distributed uniformly on (0,1). The firm's goal is to maximize profits.
+
+## Simulation
+
+### Profit Function
+
+```{r monopoly-simulation}
+# Number of buyers per day
+daily_buyers <- 100
+# Marginal cost
+c <- 0.2
+# Simulate profits at different prices
+prices <- seq(0.1, 0.9, by = 0.1)
+profits <- sapply(prices, function(p) {
+  quantity <- sum(runif(daily_buyers) >= p)
+  revenue <- p * quantity
+  cost <- c * quantity
+  revenue - cost
+})
+```
+
+### Plot
+
+```{r monopoly-plot}
+# Plot profits against prices
+plot(prices, profits, type = "b", col = "green", pch = 19, lwd = 2,
+     xlab = "Price", ylab = "Profit", main = "Profit as a Function of Price")
+```
+
+# Exercise 3: Duopoly and Demand Estimation
+
+## Background
+
+We estimate the Cournot duopoly equilibrium using a linear demand function.
+
+## Simulation
+
+### Simulated Observations and Regression
+
+```{r duopoly}
+# Simulation parameters
+nsim <- 1000
+beta_x <- 1.5
+beta_q <- -1
+beta_g <- 0.6
+
+# Simulate variables
+X <- rnorm(nsim, mean = 10, sd = 2)
+w <- rnorm(nsim, mean = 2, sd = 1)
+epsilon_D <- rnorm(nsim, mean = 0, sd = 4)
+epsilon_S <- rnorm(nsim, mean = 0, sd = 1)
+
+# Demand function: P = beta_x * X + beta_q * Q + epsilon_D
+Q <- seq(0, 100, length.out = nsim)
+P <- beta_x * X + beta_q * Q + epsilon_D
+
+# Naive regression
+model_naive <- lm(P ~ Q)
+plot(Q, P, pch = 16, col = "blue", main = "Naive Regression: Price vs. Quantity")
+abline(model_naive, col = "red", lwd = 2)
+
+# Instrumental Variables (IV) Regression
+library(AER)
+iv_model <- ivreg(P ~ Q | X + w)
+summary(iv_model)
+```
+
