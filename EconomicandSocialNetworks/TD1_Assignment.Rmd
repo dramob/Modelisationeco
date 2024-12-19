@@ -1,6 +1,6 @@
 ---
 title: "TD1 Assignment Report"
-author: "DRAME Alia LAKAS idriss MEIGNEN Erwan"
+author: "DRAME Alia MEIGNEN Erwan LAKAS Idriss"
 output: pdf_document
 ---
 
@@ -38,6 +38,7 @@ quantity_demanded <- sapply(market_prices, function(p) sum(reservation_prices >=
 plot(quantity_demanded, market_prices, type = "l", col = "blue", lwd = 2,
      xlab = "Quantity Demanded", ylab = "Market Price",
      main = "Demand Curve")
+# Comment: The demand curve shows how market price decreases as quantity demanded increases, reflecting typical consumer behavior in response to price changes.
 ```
 
 ### Alternative Representation
@@ -53,6 +54,7 @@ fraction_population <- seq(1 / N, 1, by = 1 / N)
 plot(fraction_population, sorted_reservation_prices, type = "l", col = "red", lwd = 2,
      xlab = "Fraction of Population", ylab = "Reservation Price",
      main = "Sorted Demand Curve")
+# Comment: This plot illustrates the distribution of reservation prices, showing how the fraction of the population willing to pay decreases as the price increases.
 ```
 
 # Exercise 2: Monopoly Pricing
@@ -86,6 +88,7 @@ profits <- sapply(prices, function(p) {
 # Plot profits against prices
 plot(prices, profits, type = "b", col = "green", pch = 19, lwd = 2,
      xlab = "Price", ylab = "Profit", main = "Profit as a Function of Price")
+# Comment: The profit curve peaks at an optimal price, where the balance between price and quantity sold maximizes revenue minus cost. Beyond this point, raising the price reduces profits as the reduction in quantity sold outweighs the higher price per unit.
 ```
 
 # Exercise 3: Duopoly and Demand Estimation
@@ -116,11 +119,10 @@ Q <- seq(0, 100, length.out = nsim)
 P <- beta_x * X + beta_q * Q + epsilon_D
 
 # Naive regression
-model_naive <- lm(P ~ Q)
+model_naive <- lm(P ~ Q + X + w)  # Simple regression without AER
+summary(model_naive)
+
+# Plot the results
 plot(Q, P, pch = 16, col = "blue", main = "Naive Regression: Price vs. Quantity")
 abline(model_naive, col = "red", lwd = 2)
-
-# Instrumental Variables (IV) Regression
-library(AER)
-iv_model <- ivreg(P ~ Q | X + w)
-summary(iv_model)
+```

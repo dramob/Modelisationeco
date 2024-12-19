@@ -1,0 +1,107 @@
+---
+title: "TP2 - Survival Analysis and Social Networks"
+author: "DRAME Alia LAKAS Idriss MEIGNAN Erwan "
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Introduction
+
+This document investigates the impact of social networks on the adoption of an instant messenger using survival analysis methods. The datasets `messenger_adoption.csv` and `users_socnet.csv` are used to analyze how demographic and network characteristics influence adoption decisions.
+
+# Data Loading
+
+```{r load-data, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(survival)
+library(survminer)
+library(igraph)
+
+# Load the datasets
+d1 <- read.csv("messenger_adoption.csv")
+edgelist <- read.csv("users_socnet.csv")
+
+# Create necessary variables
+d1 <- d1 %>% 
+  mutate(status = !is.na(time),
+         time = ifelse(is.na(time), 300, time),
+         sex = ifelse(sex == 0, "female", "male"))
+
+g1 <- graph.data.frame(edgelist, directed = FALSE, vertices = d1)
+```
+
+# Descriptive Analysis
+
+```{r descriptive-analysis}
+# Descriptive statistics
+d1 %>% summary()
+
+# Distribution of adoption times
+ggplot(d1, aes(x = time, fill = status)) +
+  geom_histogram(binwidth = 10, alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Adoption Time Distribution", x = "Time (days)", y = "Number of Users")
+```
+
+# Kaplan-Meier Estimation
+
+```{r kaplan-meier}
+# Kaplan-Meier object creation
+km_obj <- survfit(Surv(time, status) ~ sex, data = d1)
+
+ggsurvplot(km_obj, data = d1, pval = TRUE, conf.int = TRUE,
+           title = "Kaplan-Meier Survival Curves by Sex",
+           legend.title = "Sex",
+           xlab = "Time (days)", ylab = "Survival Probability")
+```
+
+# Cox Model: Fixed Covariates
+
+```{r cox-fixed}
+cox_model <- coxph(Surv(time, status) ~ sex + age + I(age^2), data = d1)
+summary(cox_model)
+```
+
+# Cox Model: Time-Varying Covariates
+
+```{r cox-time-varying}
+# Data transformation for time-varying covariates
+newdata <- data.frame()
+for (i in 1:vcount(g1)) {
+  n_i <- neighbors(g1, i)
+  adoption_times <- V(g1)[n_i]$time
+  adoption_times <- adoption_times[adoption_times < V(g1)[i]$time]
+  if (length(adoption_times) > 0) {
+    intervals <- sort(c(0, adoption_times, V(g1)[i]$time))
+    for (j in 1:(length(intervals) - 1)) {
+      newdata <- rbind(newdata, data.frame(
+        personID = V(g1)[i]$name,
+        sex = V(g1)[i]$sex,
+        age = V(g1)[i]$age,
+        t1 = intervals[j],
+        t2 = intervals[j + 1],
+        adopters = sum(adoption_times < intervals[j + 1]),
+        status = ifelse(intervals[j + 1] == V(g1)[i]$time, TRUE, FALSE)
+      ))
+    }
+  }
+}
+
+cox_time_model <- coxph(Surv(t1, t2, status) ~ sex + age + adopters, data = newdata)
+summary(cox_time_model)
+```
+
+# Visualization and Comparisons
+
+```{r visualization}
+# Replicating diagrams from Birke (2013)
+ggplot(newdata, aes(x = t2, y = adopters, color = sex)) +
+  geom_line() +
+  labs(title = "Adoption Over Time by Sex",
+       x = "Time (days)", y = "Number of Adopters")
+```
+
+# Discussion and Conclusion
+
+The results show a strong influence of social networks on adoption decisions, aligning with the conclusions of Birke (2013). Kaplan-Meier and Cox models reveal significant effects of demographic and social interaction variables.
+
